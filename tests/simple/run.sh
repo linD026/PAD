@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+PREFIX=$1
+PDF="$PREFIX/pad"
+PROGRAM="$PREFIX/tests/simple/program.c"
+TARGET="$PREFIX/tests/simple/target.c"
+SYMBOL="breakpoint"
+ACTION="LOAD"
+
+echo "$PDF --PROGRAM $PROGRAM --TARGET $TARGET --SYMBOL $SYMBOL --ACTION $ACTION"
+$PDF --PROGRAM $PROGRAM --TARGET $TARGET --SYMBOL $SYMBOL --ACTION $ACTION

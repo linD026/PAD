@@ -1,0 +1,74 @@
+#define _GNU_SOURCE
+#include <pad/pad.h>
+#include <pad/logs.h>
+#include <pad/utils.h>
+
+#include <spawn.h>
+#include <wait.h>
+#include <string.h>
+#include <errno.h>
+
+#undef pr_fmt
+#define pr_fmt "[verifier] "
+
+static int lw_system(char *restrict exec, char *argv[])
+{
+    int ret = 0;
+    pid_t child_pid = 0;
+    posix_spawnattr_t attr;
+    extern char **environ;
+
+    /* TODO: Add error handling instead of using the BUG_ON. */
+    BUG_ON(posix_spawnattr_init(&attr), "init attr");
+    BUG_ON(posix_spawnattr_setflags(&attr, POSIX_SPAWN_USEVFORK), "set attr");
+
+    ret = posix_spawn(&child_pid, argv[0], NULL, &attr, argv, environ);
+
+    if (unlikely(ret)) {
+        pr_info("posix_spawn:%d pid:%d error:%s\n", ret, child_pid,
+                strerror(ret));
+        WARN_ON(1, "posix_spawn failed");
+        return -ECHILD;
+    }
+
+    ret = waitpid(child_pid, &ret, 0);
+    WARN_ON(ret == -1, "waitpid");
+
+    return ret != -1 ? 0 : -EINVAL;
+}
+
+static int compile_program(struct core_info *info, struct prog_struct *p)
+{
+    char *argv[FIXED_BUF_SIZE] = { 0 };
+    int i = 0, argc = 0, ret = 0;
+
+    sprintf(p->name, "%s.so", info->program);
+
+    pr_info("compile: %s\n", p->name);
+
+    argv[argc++] = info->compiler;
+    argv[argc++] = "-o";
+    argv[argc++] = p->name;
+    argv[argc++] = info->program;
+
+    for (char *iter = info->cflags[i]; i < info->nr_cflags;
+         iter = info->cflags[++i])
+        argv[argc++] = iter;
+
+    argv[argc++] = "-shared";
+    argv[argc++] = NULL;
+
+    WARN_ON(argc >= FIXED_BUF_SIZE, "overflow");
+
+    /* Return 0, if the command succeed. */
+    ret = lw_system(info->compiler, argv);
+    WARN_ON(ret, "compile(\"%s\") return %d error:%s", p->name, ret,
+            strerror(ret));
+
+    return ret;
+}
+
+void verify_and_compile_program(struct core_info *info)
+{
+    pr_info("%s\n", __func__);
+}
