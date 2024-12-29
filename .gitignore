@@ -1,1 +1,3 @@
 .cache/*
+cscope.*
+compile_commands.json
