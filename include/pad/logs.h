@@ -39,9 +39,11 @@ void __pad_exit(int exit_code);
     } while (0)
 
 #define WARN_ON(cond, fmt, ...)                                    \
-    do {                                                           \
-        if (unlikely(cond))                                        \
+    ({                                                             \
+        int __w_r_ret = !!(cond);                                  \
+        if (unlikely(__w_r_ret))                                   \
             pr_err("WARN ON:" #cond ", " fmt "\n", ##__VA_ARGS__); \
-    } while (0)
+        unlikely(__w_r_ret);                                       \
+    })
 
 #endif /* __PAD_LOGS_H__*/

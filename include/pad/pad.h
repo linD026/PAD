@@ -21,6 +21,7 @@ struct core_info {
     };
     char program[FIXED_BUF_SIZE];
     char target[FIXED_BUF_SIZE];
+    int target_pid;
     char symbol[FIXED_BUF_SIZE];
     enum action_type action;
 };

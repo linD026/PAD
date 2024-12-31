@@ -3,6 +3,7 @@
 #include <pad/logs.h>
 #include <pad/utils.h>
 
+#include <stdio.h> /* for fopen() */
 #include <spawn.h>
 #include <wait.h>
 #include <string.h>
@@ -68,7 +69,39 @@ static int compile_program(struct core_info *info, struct prog_struct *p)
     return ret;
 }
 
+static int get_pid_info(struct core_info *info)
+{
+    FILE *fp = NULL;
+    size_t size = 0;
+    int ret = 0;
+
+    snprintf(info->target, FIXED_BUF_SIZE, "/proc/%d/comm", info->target_pid);
+    info->target[FIXED_BUF_SIZE - 1] = '\0';
+
+    fp = fopen(info->target, "r");
+
+    if (WARN_ON(!fp, "%s doesn't existed", info->target))
+        return -EINVAL;
+
+    size = fread(info->target, FIXED_BUF_SIZE, 1, fp);
+    ret = ferror(fp);
+    if (WARN_ON(ret, "fread error: read size:%zu, ret:%d", size, ret))
+        return -ret;
+
+    fclose(fp);
+
+    return 0;
+}
+
 void verify_and_compile_program(struct core_info *info)
 {
+    int ret = 0;
+
     pr_info("%s\n", __func__);
+
+    ret = get_pid_info(info);
+    if (unlikely(ret))
+        return;
+
+    pr_info("target pid binary:\n%s\n", info->target);
 }

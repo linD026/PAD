@@ -4,6 +4,7 @@
 #include <pad/probe.h>
 #include <pad/utils.h>
 
+#include <stdlib.h> /* for atoi() */
 #include <errno.h>
 #include <getopt.h>
 #include <string.h>
@@ -39,6 +40,7 @@ static struct core_info core_info = {
         { "-Wall" },
         { "-O2" },
     },
+    .target_pid = -1,
     .nr_cflags = 2,
 };
 
@@ -60,7 +62,7 @@ static struct opt_data opt_data = {
     .options = { { "CC", optional_argument, 0, OPT_COMPILER },
                  { "CFLAGS", optional_argument, 0, OPT_CFLAGS },
                  { "PROGRAM", required_argument, 0, OPT_PROGRAM },
-                 { "TARGET", required_argument, 0, OPT_TARGET },
+                 { "TARGET_PID", required_argument, 0, OPT_TARGET },
                  { "SYMBOL", required_argument, 0, OPT_SYMBOL },
                  { "ACTION", required_argument, 0, OPT_ACTION } },
 };
@@ -95,15 +97,6 @@ static int parse_action(void)
     return -EINVAL;
 }
 
-static void pr_action(void)
-{
-    BUG_ON(core_info.action <= PAD_ACT_DUMP ||
-               core_info.action >= PAD_NR_ACTION,
-           "core_info.action is corrupted:%d", core_info.action);
-
-    pr_info("action: %s\n", act_table[core_info.action]);
-}
-
 static void set_option(int argc, char *argv[])
 {
     int opt;
@@ -132,8 +125,7 @@ static void set_option(int argc, char *argv[])
             core_info.program[FIXED_BUF_SIZE - 1] = '\0';
             break;
         case OPT_TARGET:
-            strncpy(core_info.target, optarg, FIXED_BUF_SIZE);
-            core_info.target[FIXED_BUF_SIZE - 1] = '\0';
+            core_info.target_pid = atoi(optarg);
             break;
         case OPT_SYMBOL:
             strncpy(core_info.symbol, optarg, FIXED_BUF_SIZE);
@@ -166,18 +158,28 @@ int main(int argc, char *argv[])
     BUG_ON(!strlen(core_info.program), "unset program");
     pr_info("program file: %s\n", core_info.program);
 
-    BUG_ON(!strlen(core_info.target), "unset program binary");
-    pr_info("target program binary: %s\n", core_info.target);
+    BUG_ON(core_info.target_pid == -1, "unset program binary");
+    pr_info("target program pid: %d\n", core_info.target_pid);
+
+    BUG_ON(core_info.action <= PAD_ACT_DUMP ||
+               core_info.action >= PAD_NR_ACTION,
+           "core_info.action is corrupted:%d", core_info.action);
+
+    pr_info("action: %s\n", act_table[core_info.action]);
 
     if (core_info.action == PAD_ACT_LOAD) {
         BUG_ON(!strlen(core_info.symbol), "unset program symbol");
         pr_info("probe symbol code: %s\n", core_info.symbol);
     }
 
-    pr_action();
-
-    verify_and_compile_program(&core_info);
-    probe_handler(&core_info);
+    if (core_info.action == PAD_ACT_LOAD) {
+        verify_and_compile_program(&core_info);
+        probe_handler(&core_info);
+    } else if (core_info.action == PAD_ACT_UNLOAD) {
+        // TODO:
+    } else if (core_info.action == PAD_ACT_DEBUG) {
+        // TODO:
+    }
 
     return 0;
 }

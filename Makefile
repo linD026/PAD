@@ -11,7 +11,9 @@ CFLAGS += -std=c11
 
 DEBUG_FLAGS =
 
-ifneq ($(strip $(debug)),)
+DEBUG := 1
+
+ifeq ($(strip $(DEBUG)), 1)
 DEBUG_FLAGS += -D'CONFIG_DEBUG'
 CFLAGS+=$(DEBUG_FLAGS)
 endif
@@ -25,6 +27,46 @@ OBJ := $(SRC:.c=.o)
 
 BIN := pad
 
+###
+# library
+
+ARCH := x86-64
+
+ifeq ($(strip $(ARCH)), x86-64)
+ARCH_LIB_SRC := src/libpad/x86_64.c
+endif
+
+LIB_SRC := $(ARCH_LIB_SRC)
+LIB_SRC += src/logs.c
+LIB_SRC += src/libpad/pad.c
+
+CFLAGS += -fPIC
+
+LIB_OBJ := $(LIB_SRC:.c=.o)
+STATIC_LIB := libpad.a
+DYNAMIC_LIB := libpad.so
+
+ifneq ($(strip $(static)),)
+LD=ar
+LDFLAGS=crsv
+LD_BIN=$(STATIC_BIN)
+LD_TO=
+LD_GEN=ranlib
+LD_GEN_TARGET=$(STATIC_LIB)
+LIB=$(STATIC_LIB)
+else
+LD=$(CC)
+LDFLAGS=-shared
+LDFLAGS+=$(DEBUG_FLAGS)
+LD_BIN=$(DYNAMIC_LIB)
+LD_TO=-o
+LD_GEN=
+LD_GEN_TARGET=
+LIB=$(DYNAMIC_LIB)
+endif
+
+###
+
 RM := rm
 
 %.o: %.c
@@ -33,10 +75,14 @@ RM := rm
 $(BIN): $(OBJ)
 	$(CC) $(CFLAGS) $(INC_PARAMS) $(OBJ) -o $@
 
+lib: $(LIB_OBJ)
+	$(LD) $(LDFLAGS) $(LD_TO) $(LD_BIN) $(LIB_OBJ)
+	$(LD_GEN) $(LD_GEN_TARGET)
+
 clean:
 	$(RM) -f src/*/*.o
 	$(RM) -f src/*.o
-	$(RM) -f $(BIN)
+	$(RM) -f $(BIN) $(LD_BIN)
 
 cscope:
 	find $(PWD) -name "*.c" -o -name "*.h" > $(PWD)/cscope.files
