@@ -1,3 +1,4 @@
+/* arch: x86-64 */
 #include <uapi/pad.h>
 #include <pad/logs.h>
 
@@ -7,6 +8,9 @@
 #include <unistd.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#undef pr_fmt
+#define pr_fmt "[x86] "
 
 static void decode_code(unsigned char *code)
 {
@@ -18,16 +22,11 @@ static void decode_code(unsigned char *code)
 #endif
 }
 
-/* x86-64 */
 void arch_init_inject_code(unsigned char *inject_code, uintptr_t target_address,
                            uintptr_t handler)
 {
     // Calculate the relative address from the patched address
-    int32_t rel;
-
-    BUG_ON(sizeof(ptrdiff_t) >= CONFIG_PAD_PATCHABLE_SPACE,
-           "ptrdiff_t (%zu) > CONFIG_PAD_PATCHABLE_SPACE(%d)",
-           sizeof(ptrdiff_t), CONFIG_PAD_PATCHABLE_SPACE);
+    ptrdiff_t rel;
 
     /*
      *
@@ -37,25 +36,34 @@ void arch_init_inject_code(unsigned char *inject_code, uintptr_t target_address,
      *          call <relative_offset>
      *          0xE8        ...
      *   bytes:   1          4         = 5
+     *
+     * E8: Call near, relative, displacement relative to next instruction.
+     *     32-bit displacement sign extended to 64-bits in 64-bit mode.
      */
-    inject_code[0] = 0xE8;
-    rel = (int32_t)(handler - target_address) - 5;
-    memcpy(&inject_code[1], &rel, sizeof(rel));
-    memset(&inject_code[5], 0x90, CONFIG_PAD_PATCHABLE_SPACE - 5);
+    //    inject_code[0] = 0xE8;
+    //    rel = (ptrdiff_t)(handler - target_address) - 5;
+    //    memcpy(&inject_code[1], &rel, sizeof(rel));
+    //    memset(&inject_code[5], 0x90, CONFIG_PAD_PATCHABLE_SPACE - 5);
 
     /*
-     * RIP-relative addressing.
+     * 64-bit absolute address.
      *
-     * injected_function:
-     *          CALL [rip + offset]
+     * We do:
+     *      movabs <address>, %rax
+     *      call   *rax
+     *      nop
      */
-    // TODO: support 64-bit
-    BUG_ON(target_address & ~((unsigned long)(1 << 31) - 1),
-           "target address(%p) overflow (0x%lx)", (void *)target_address,
-           target_address & ~((unsigned long)(1 << 31) - 1));
-    BUG_ON(handler & ~((unsigned long)(1 << 31) - 1),
-           "handler (%p) overflow (0x%lx)", (void *)handler,
-           handler & ~((unsigned long)(1 << 31) - 1));
+    inject_code[0] = 0x48; // REX prefix (64-bit operand size)
+    inject_code[1] = 0xB8; // 'mov' instruction opcode
+
+    for (int i = 0; i < 8; i++) {
+        inject_code[i + 2] = (handler >> (i * 8)) & 0xFF;
+    }
+
+    inject_code[10] = 0xFF; // 'call rax' instruction
+    inject_code[11] = 0xD0; // ModRM byte for 'call rax'
+
+    memset(&inject_code[12], 0x90, CONFIG_PAD_PATCHABLE_SPACE - 12);
 
     decode_code(inject_code);
 }

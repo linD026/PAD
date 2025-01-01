@@ -18,17 +18,30 @@
     __attribute__((aligned(64))) __attribute__((optimize(0))) \
     __attribute__((section(CONFIG_PAD_SECTION)))
 
-#define PAD_ENTER_POINT(name) void name(void)
+/* pad_probe->flags */
+#define PAD_SET_SHMEM_FLAG 0x0001
+#define PAD_EXTERNAL_HANDLER_FLAG 0x0002
+#define PAD_FLAGS_MASK (PAD_SET_SHMEM_FLAG | PAD_EXTERNAL_HANDLER_FLAG)
 
 struct pad_probe {
+    /* target function address */
     unsigned long address;
+    /* tareget fucntion name */
     const char *name;
+    unsigned long breakpoint;
+    unsigned int flags;
 };
 
-void __probe_handler(void);
+#define PAD_ENTER_POINT(name) void name(void)
 
-int pad_init(void);
+void pad_builtin_handler(void);
+typedef void (*pad_handler_t)(void);
+
+int pad_init(pad_handler_t handler, unsigned int flags);
 int pad_exit(void);
+
+int pad_register_probe(struct pad_probe *p);
+int pad_unregister_probe(struct pad_probe *p);
 
 /* debug testing */
 #ifdef CONFIG_DEBUG

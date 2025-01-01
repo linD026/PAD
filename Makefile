@@ -22,6 +22,7 @@ SRC := src/pad.c
 SRC += src/logs.c
 SRC += src/verifier.c
 SRC += src/probe.c
+SRC += src/shmem.c
 
 OBJ := $(SRC:.c=.o)
 
@@ -38,9 +39,11 @@ endif
 
 LIB_SRC := $(ARCH_LIB_SRC)
 LIB_SRC += src/logs.c
+LIB_SRC += src/shmem.c
 LIB_SRC += src/libpad/pad.c
 
 CFLAGS += -fPIC
+CFLAGS += -no-pie
 
 LIB_OBJ := $(LIB_SRC:.c=.o)
 STATIC_LIB := libpad.a
