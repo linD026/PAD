@@ -35,6 +35,7 @@ ARCH := x86-64
 
 ifeq ($(strip $(ARCH)), x86-64)
 ARCH_LIB_SRC := src/libpad/x86_64.c
+CFLAGS += -D'CONFIG_ARCH_X86_64'
 endif
 
 LIB_SRC := $(ARCH_LIB_SRC)

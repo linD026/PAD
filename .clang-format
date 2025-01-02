@@ -93,3 +93,9 @@ SpacesInSquareBrackets: false
 Standard: Cpp03
 TabWidth: 4
 UseTab: Never
+
+ForEachMacros:
+  - 'list_for_each'
+  - 'list_for_each_entry'
+  - 'list_for_each_from'
+  - 'list_for_each_safe'

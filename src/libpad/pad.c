@@ -3,12 +3,14 @@
 #include <uapi/pad.h>
 #include <pad/logs.h>
 #include <pad/shmem.h>
+#include <pad/list.h>
 
 #include <errno.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <signal.h>
 #include <string.h>
+#include <stdlib.h> /* for malloc() */
 #include <unistd.h>
 #include <dlfcn.h>
 #include <stdint.h> /* for uintptr_t */
@@ -26,11 +28,28 @@
 #define PP_CREATED_SHARED_MEM 0x0002
 #define PP_INTERNAL_MEM 0x0004
 
-/* TODO: Per-probe handler. */
-struct pad_probe_data {
-    struct pad_probe *p;
-    /* list */
+struct breakpoint_info {
+    unsigned long breakpoint;
+    unsigned int flags;
+    struct list_head bp_node;
 };
+
+struct target {
+    unsigned long address;
+    struct list_head bp_head;
+    pthread_rwlock_t lock;
+
+    /* Protected by pad_data->lock. */
+    int refcount;
+    struct list_head node;
+};
+
+struct pad_data {
+    struct list_head list;
+    pthread_mutex_t lock;
+};
+
+static struct pad_data pad_data;
 
 /* x86-64 instruction is 5 bytes. */
 static_assert(CONFIG_PAD_PATCHABLE_SPACE > 5,
@@ -111,19 +130,19 @@ static void text_clear(unsigned long address)
 // TODO: we might insert multiple function to the same spot.
 // TODO: insert to the list instead of inject the function
 // TODO: per-function critical section
-static void arm_pad(struct pad_probe *p)
+static void arm_pad(struct target *target)
 {
     pad_handler_t handler = NULL;
 
     atomic_signal_fence(memory_order_acquire);
     handler = atomic_load_explicit(&pad_arm_handler, memory_order_relaxed);
 
-    text_inject(p->address, (unsigned long)handler);
+    text_inject(target->address, (unsigned long)handler);
 }
 
-static void disarm_pad(struct pad_probe *p)
+static void disarm_pad(struct target *target)
 {
-    text_clear(p->address);
+    text_clear(target->address);
 }
 
 /*
@@ -159,9 +178,70 @@ static void probe_require_handler(int signal)
 
     p.address = target_address;
 
-    arm_pad(&p);
+    // register
 
     atomic_fetch_add_explicit(&process_probe_require, -1, memory_order_release);
+}
+
+/* Return the previous refcount. */
+static int insert_breakpoint(struct target *target, struct pad_probe *p)
+{
+    struct breakpoint_info *prealloc = NULL;
+    struct breakpoint_info *bi = NULL;
+    int ret = -ENOMEM;
+
+    prealloc = malloc(sizeof(struct breakpoint_info));
+    if (unlikely(!prealloc))
+        return ret;
+
+    prealloc->breakpoint = p->breakpoint;
+    prealloc->flags = p->flags;
+    list_init(&prealloc->bp_node);
+
+    ret = -EINVAL;
+
+    pthread_rwlock_wrlock(&target->lock);
+
+    list_for_each_entry (bi, &target->bp_head, bp_node) {
+        if (bi->breakpoint == p->breakpoint) {
+            pthread_rwlock_unlock(&target->lock);
+            ret = 0;
+            goto out;
+        }
+    }
+
+    bi = prealloc;
+    prealloc = NULL;
+    list_add_tail(&bi->bp_node, &target->bp_head);
+    ret = 0;
+
+    pthread_rwlock_unlock(&target->lock);
+
+out:
+    if (prealloc)
+        free(prealloc);
+
+    return ret;
+}
+
+static int delete_breakpoint(struct target *target, struct pad_probe *p)
+{
+    struct breakpoint_info *bi = NULL;
+    int ret = -EINVAL;
+
+    pthread_rwlock_wrlock(&target->lock);
+
+    list_for_each_entry (bi, &target->bp_head, bp_node) {
+        if (bi->breakpoint == p->breakpoint) {
+            list_del(&bi->bp_node);
+            ret = 0;
+            break;
+        }
+    }
+
+    pthread_rwlock_unlock(&target->lock);
+
+    return ret;
 }
 
 /* User APIs. */
@@ -169,8 +249,42 @@ static void probe_require_handler(int signal)
 void __attribute__((aligned(64))) __attribute__((optimize(0)))
 pad_builtin_handler(void)
 {
-    // TODO: call the list of functions
-    printf("This is probe function!\n");
+    struct target *target = NULL;
+    struct breakpoint_info *bi = NULL;
+    unsigned long address = 0;
+
+    address = arch_get_target_address();
+    if (unlikely(!address)) {
+        WARN_ON(1, "unsupport arch_get_target_address()");
+        return;
+    }
+
+#ifdef CONFIG_DEBUG
+    pr_info("address:%p\n", (void *)address);
+#endif
+
+    pthread_mutex_lock(&pad_data.lock);
+    list_for_each_entry (target, &pad_data.list, node) {
+        if (target->address == address) {
+            target->refcount++;
+            pthread_mutex_unlock(&pad_data.lock);
+
+            // TODO: Don't call the handler when holding rlock.
+            pthread_rwlock_rdlock(&target->lock);
+            list_for_each_entry (bi, &target->bp_head, bp_node) {
+                pad_handler_t handler = (pad_handler_t)bi->breakpoint;
+                handler();
+            }
+            pthread_rwlock_unlock(&target->lock);
+
+            pthread_mutex_lock(&pad_data.lock);
+            target->refcount--;
+            pthread_mutex_unlock(&pad_data.lock);
+
+            return;
+        }
+    }
+    pthread_mutex_unlock(&pad_data.lock);
 }
 
 int pad_init(pad_handler_t handler, unsigned int flags)
@@ -178,9 +292,6 @@ int pad_init(pad_handler_t handler, unsigned int flags)
     int ret = 0;
 
     pad_flags = flags & PAD_FLAGS_MASK;
-
-    // TODO: impl the internal (builtin) handler feature (64-bit addr problem)
-    pad_flags |= PAD_EXTERNAL_HANDLER_FLAG;
 
     if (pad_flags & PAD_EXTERNAL_HANDLER_FLAG) {
         if (unlikely(!handler)) {
@@ -206,6 +317,9 @@ int pad_init(pad_handler_t handler, unsigned int flags)
     atomic_store_explicit(&pad_arm_handler, handler, memory_order_relaxed);
     atomic_signal_fence(memory_order_release);
 
+    pthread_mutex_init(&pad_data.lock, NULL);
+    list_init(&pad_data.list);
+
 bail_out:
 
     return ret;
@@ -216,43 +330,136 @@ int pad_exit(void)
     if (shmem_data)
         exit_shmem(shmem_data);
 
+    //TODO: delete the list
+
     return 0;
 }
 
 int pad_register_probe(struct pad_probe *p)
 {
+    struct target *prealloc = NULL;
+    struct target *target = NULL;
+    int ret = -EINVAL;
+
     if (unlikely(!p))
-        return -EINVAL;
+        return ret;
+
+    if (unlikely(!p->breakpoint))
+        return ret;
 
     if (!p->address && p->name) {
         p->address = (unsigned long)dlsym(RTLD_DEFAULT, p->name);
         if (!p->address)
-            return -EINVAL;
+            return ret;
     }
 
-    arm_pad(p);
+    ret = -ENOMEM;
+    prealloc = malloc(sizeof(struct target));
+    if (unlikely(!prealloc))
+        return ret;
 
-    return 0;
+    prealloc->address = p->address;
+    list_init(&prealloc->bp_head);
+    prealloc->refcount = 0;
+    pthread_rwlock_init(&prealloc->lock, NULL);
+    list_init(&prealloc->node);
+
+    pthread_mutex_lock(&pad_data.lock);
+
+    list_for_each_entry (target, &pad_data.list, node) {
+        if (target->address == p->address) {
+            pthread_mutex_unlock(&pad_data.lock);
+            ret = insert_breakpoint(target, p);
+            goto out;
+        }
+    }
+
+    target = prealloc;
+    prealloc = NULL;
+    pthread_mutex_unlock(&pad_data.lock);
+
+    ret = insert_breakpoint(target, p);
+
+out:
+    if (prealloc)
+        free(prealloc);
+
+    if (likely(!ret)) {
+        pthread_mutex_lock(&pad_data.lock);
+        ret = target->refcount++;
+        list_add_tail(&target->node, &pad_data.list);
+        pthread_mutex_unlock(&pad_data.lock);
+        if (!ret)
+            arm_pad(target);
+    }
+
+    return ret;
 }
 
 int pad_unregister_probe(struct pad_probe *p)
 {
-    disarm_pad(p);
-    return 0;
+    struct target *target = NULL;
+    int ret = -EINVAL;
+
+    if (unlikely(!p))
+        return ret;
+
+    if (unlikely(!p->breakpoint))
+        return ret;
+
+    if (!p->address && p->name) {
+        p->address = (unsigned long)dlsym(RTLD_DEFAULT, p->name);
+        if (!p->address)
+            return ret;
+    }
+
+    pthread_mutex_lock(&pad_data.lock);
+
+    list_for_each_entry (target, &pad_data.list, node) {
+        if (target->address == p->address) {
+            pthread_mutex_unlock(&pad_data.lock);
+            ret = delete_breakpoint(target, p);
+            goto out;
+        }
+    }
+
+    pthread_mutex_unlock(&pad_data.lock);
+
+out:
+    if (likely(!ret)) {
+        /*
+         * we want to delete the node in pad_data->list,
+         * it needs to require the lock again.
+         */
+        pthread_mutex_lock(&pad_data.lock);
+        /* Someone might insert new breakpoint, lets check again. */
+        if (--target->refcount == 0) {
+            /* we can safely delete the node. */
+            list_del(&target->node);
+            pthread_rwlock_destroy(&target->lock);
+
+            pthread_mutex_unlock(&pad_data.lock);
+
+            disarm_pad(target);
+
+            WARN_ON(!list_empty(&target->bp_head),
+                    "delete target while holding breakpoint");
+            return ret;
+        }
+        pthread_mutex_unlock(&pad_data.lock);
+    }
+
+    return (ret > 0) ? 0 : ret;
 }
 
 /* Debug testing */
 #ifdef CONFIG_DEBUG
 void pad_test_inject(unsigned long address, unsigned long function)
 {
-    if (!function) {
-        // FIXME: 64-bit and ASLR
+    if (!function)
         function = (unsigned long)pad_builtin_handler;
-        //BUG_ON(1, "Doesn't support builtin handler");
-    }
 
-    // FIXME: dynamically skipping endbr64
-    text_inject(address + 4, function);
+    text_inject(address + arch_skip_instruction, function);
 }
 
 void pad_test_recover(unsigned long address)

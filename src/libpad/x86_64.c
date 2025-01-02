@@ -12,6 +12,9 @@
 #undef pr_fmt
 #define pr_fmt "[x86] "
 
+/* skip endbr64 */
+unsigned long arch_skip_instruction = 4;
+
 static void decode_code(unsigned char *code)
 {
 #ifdef CONFIG_DEBUG
@@ -25,9 +28,6 @@ static void decode_code(unsigned char *code)
 void arch_init_inject_code(unsigned char *inject_code, uintptr_t target_address,
                            uintptr_t handler)
 {
-    // Calculate the relative address from the patched address
-    ptrdiff_t rel;
-
     /*
      *
      * 32-bit address.
@@ -40,6 +40,9 @@ void arch_init_inject_code(unsigned char *inject_code, uintptr_t target_address,
      * E8: Call near, relative, displacement relative to next instruction.
      *     32-bit displacement sign extended to 64-bits in 64-bit mode.
      */
+    // Calculate the relative address from the patched address
+    //ptrdiff_t rel;
+    //
     //    inject_code[0] = 0xE8;
     //    rel = (ptrdiff_t)(handler - target_address) - 5;
     //    memcpy(&inject_code[1], &rel, sizeof(rel));
