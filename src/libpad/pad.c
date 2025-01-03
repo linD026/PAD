@@ -1,4 +1,4 @@
-#define _GNU_SOURCE
+#define _GNU_SOURCE /* for rwlock, _SC_PAGESIZE */
 #include <arch/common.h>
 #include <uapi/pad.h>
 #include <pad/logs.h>
@@ -9,14 +9,11 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <signal.h>
-#include <string.h>
-#include <stdlib.h> /* for malloc() */
-#include <unistd.h>
 #include <dlfcn.h>
-#include <stdint.h> /* for uintptr_t */
+#include <string.h> /* for memcpy */
+#include <stdlib.h> /* for malloc() */
 #include <sys/mman.h> /* for page_size */
 #include <assert.h> /* for static_assert() */
-#include <stddef.h> /* for ptrdiff_t */
 
 #undef pr_fmt
 #define pr_fmt "[libpad] "
@@ -76,7 +73,7 @@ static __always_inline void poke_unlock(void)
 
 static __always_inline void *align_to_page(void *addr)
 {
-    return (void *)((uintptr_t)addr & ~(page_size - 1));
+    return (void *)((unsigned long)addr & ~(page_size - 1));
 }
 
 static void text_permission_start(unsigned long address)
@@ -270,6 +267,7 @@ pad_builtin_handler(void)
     pthread_mutex_lock(&pad_data.lock);
     list_for_each_entry (target, &pad_data.list, node) {
         if (target->address == address) {
+            /* Prevent someone release this while we are handling. */
             target->refcount++;
             pthread_mutex_unlock(&pad_data.lock);
 
