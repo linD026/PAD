@@ -217,6 +217,10 @@ static int insert_breakpoint(struct target *target, struct pad_probe *p)
 
     pthread_rwlock_unlock(&target->lock);
 
+#ifdef CONFIG_DEBUG
+    pr_info("inserted\n");
+#endif
+
 out:
     if (prealloc)
         free(prealloc);
