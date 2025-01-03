@@ -124,9 +124,6 @@ static void text_clear(unsigned long address)
     text_poke(address, code);
 }
 
-// TODO: we might insert multiple function to the same spot.
-// TODO: insert to the list instead of inject the function
-// TODO: per-function critical section
 static void arm_pad(struct target *target)
 {
     pad_handler_t handler = NULL;
