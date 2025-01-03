@@ -48,8 +48,8 @@ struct pad_data {
 
 static struct pad_data pad_data;
 
-/* x86-64 instruction is 5 bytes. */
-static_assert(CONFIG_PAD_PATCHABLE_SPACE > 5,
+/* x86-64 instruction is 12 bytes. */
+static_assert(CONFIG_PAD_PATCHABLE_SPACE > 12,
               "CONFIG_PAD_PATCHABLE_SPACE is too small");
 static_assert(sizeof(ptrdiff_t) < CONFIG_PAD_PATCHABLE_SPACE,
               "ptrdiff_t is too small");
