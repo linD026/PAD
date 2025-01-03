@@ -128,8 +128,7 @@ static void arm_pad(struct target *target)
 {
     pad_handler_t handler = NULL;
 
-    atomic_signal_fence(memory_order_acquire);
-    handler = atomic_load_explicit(&pad_arm_handler, memory_order_relaxed);
+    handler = atomic_load_explicit(&pad_arm_handler, memory_order_acquire);
 
     text_inject(target->address, (unsigned long)handler);
 }
@@ -313,8 +312,7 @@ int pad_init(pad_handler_t handler, unsigned int flags)
 
     signal(SIGTRAP, probe_require_handler);
 
-    atomic_store_explicit(&pad_arm_handler, handler, memory_order_relaxed);
-    atomic_signal_fence(memory_order_release);
+    atomic_store_explicit(&pad_arm_handler, handler, memory_order_release);
 
     pthread_mutex_init(&pad_data.lock, NULL);
     list_init(&pad_data.list);
