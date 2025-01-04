@@ -71,7 +71,14 @@ endif
 
 ###
 
+BUILD_DIR := libpad
+
+###
+
 RM := rm
+CP := cp
+MV := mv
+MKDIR := mkdir
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INC_PARAMS) -c $< -o $@
@@ -83,11 +90,17 @@ lib: $(LIB_OBJ)
 	$(LD) $(LDFLAGS) $(LD_TO) $(LD_BIN) $(LIB_OBJ)
 	$(LD_GEN) $(LD_GEN_TARGET)
 
+all: $(BIN) lib
+	$(MKDIR) $(BUILD_DIR)
+	$(CP) include/uapi/pad.h $(BUILD_DIR)/.
+	$(MV) $(LIB) $(BIN) $(BUILD_DIR)/.
+
 clean:
 	$(RM) -f src/*/*.o
 	$(RM) -f src/*.o
-	$(RM) -f $(BIN) $(LD_BIN)
-
+	$(RM) -f $(BIN) $(LIB)
+	$(RM) -rf $(BUILD_DIR)
+	
 cscope:
 	find $(PWD) -name "*.c" -o -name "*.h" > $(PWD)/cscope.files
 	cscope -b -q

@@ -18,6 +18,7 @@ Build the PAD binaries, core and libpad:
 ```
 $ make              # Build pad core binary
 $ make lib          # Build libpad
+$ make all          # Build core and libpad in libpad directory
 $ make clean        # Delete generated files
 ```
 
