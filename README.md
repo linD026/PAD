@@ -1,14 +1,59 @@
 # PAD
 
-The userspace application debugging.
+PAD is the userspace application debugger.
+PAD provides a remote and an in-program probe interfaces to insert the breakpoint before the function is executed.
 
-## Architecture Support
+This project includes two parts, PAD core and libpad.
+PAD core program allows user to compile the probe program and insert the probe program to the target process.
+libpad provides the interface for the process, allowing the user to define the traceable function and in-program probe interface.
 
-`x86-64` only.
+---
 
-## API
+## Get start
+
+### Build
+
+Build the PAD binaries, core and libpad:
+
+```
+$ make              # Build pad core binary
+$ make lib          # Build libpad
+$ make clean        # Delete generated files
+```
+
+### Makefile parameters
+
+- `DEBUG`: Set `1` to enable the debug mode.
+- `ARCH`: The target architecture.
+- `static`: Build static library instead of dynamic library.
+
+### Architecture Support
+
+Currently, `x86-64` only.
+
+---
+
+## How to use?
+
+### PAD core
+
+```
+PAD - the userspace application debugger
+Usage: pad [options] file...
+Options:
+  --COMPILER       The compiler for building probe program
+  --CFLAGS         The flag pass to the compiler
+  --PROGRAM        The file of probe program to compile
+  --TARGET_PID     The pid of process to probe
+  --SYMBOL         The symbol of function want to probe
+  --ACTION         The action of pad <LOAD|UNLOAD|DEBUG>
+```
+
+### libpad - APIs
 
 ```c
+#include "include/uapi/pad.h"
+
 static PAD_ENTER_POINT(breakpoint) { ... }
 
 struct pad_probe {
@@ -23,7 +68,10 @@ struct pad_probe {
 int pad_register_probe(struct pad_probe *p);
 int pad_unregister_probe(struct pad_probe *p);
 
-/* For external (self-defined) handler, PAD_EXTERNAL_HANDLER_FLAG. */
+/*
+ * For external (self-defined) handler, PAD_EXTERNAL_HANDLER_FLAG.
+ * To allow the PAD core insert the breakpoint, PAD_SET_SHMEM_FLAG.
+ */
 int pad_init(pad_handler_t handler, unsigned int flags);
 int pad_exit(void);
 ```

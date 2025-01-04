@@ -50,9 +50,10 @@ static struct core_info core_info = {
 #define OPT_TARGET 4
 #define OPT_ACTION 5
 #define OPT_SYMBOL 6
+#define OPT_HELP 7
 
-#define NR_OPTION 6
-#define OPT_STRING "123456"
+#define NR_OPTION 7
+#define OPT_STRING "1234567"
 
 struct opt_data {
     struct option options[NR_OPTION + 1];
@@ -65,6 +66,7 @@ static struct opt_data opt_data = {
                  { "TARGET_PID", required_argument, 0, OPT_TARGET },
                  { "SYMBOL", required_argument, 0, OPT_SYMBOL },
                  { "ACTION", required_argument, 0, OPT_ACTION },
+                 { "help", no_argument, 0, OPT_HELP },
                  { 0, 0, 0, 0 } },
 };
 
@@ -151,6 +153,24 @@ static void set_option(int argc, char *argv[])
             BUG_ON(parse_action(), "unkown action");
             break;
 
+        case OPT_HELP:
+            printf("PAD - the userspace application debugger\n");
+            printf("Usage: pad [options] file...\n");
+            printf("Options:\n");
+            printf("  %-16s %s\n",
+                    "--COMPILER", "The compiler for building probe program");
+            printf("  %-16s %s\n",
+                    "--CFLAGS", "The flag pass to the compiler");
+            printf("  %-16s %s\n",
+                    "--PROGRAM", "The file of probe program to compile");
+            printf("  %-16s %s\n",
+                    "--TARGET_PID", "The pid of process to probe");
+            printf("  %-16s %s\n",
+                    "--SYMBOL", "The symbol of function want to probe");
+            printf("  %-16s %s\n",
+                    "--ACTION", "The action of pad <LOAD|UNLOAD|DEBUG>");
+            exit(0);
+
         default:
             BUG_ON(1, "unkown option: %d", opt);
         }
@@ -159,9 +179,9 @@ static void set_option(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-    pr_info("PAD core application for load/unload/debug\n");
-
     set_option(argc, argv);
+
+    pr_info("PAD core application for load/unload/debug\n");
 
     BUG_ON(!strlen(core_info.compiler), "unset compiler");
     pr_info("compiler: %s\n", core_info.compiler);
