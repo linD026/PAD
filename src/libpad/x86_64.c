@@ -1,12 +1,11 @@
 /* arch: x86-64 */
 #include <uapi/pad.h>
-#include <pad/logs.h>
 
+#ifdef CONFIG_DEBUG
 #include <stdio.h>
+#endif
 
 #include <string.h>
-#include <unistd.h>
-#include <stddef.h>
 #include <stdint.h>
 
 #undef pr_fmt

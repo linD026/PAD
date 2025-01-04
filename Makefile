@@ -96,6 +96,7 @@ indent:
 	clang-format -i include/*/*.[ch]
 	clang-format -i src/*/*.[ch]
 	clang-format -i src/*.[ch]
+	clang-format -i tests/*.[ch]
 	clang-format -i tests/*/*.[ch]
 
 ifeq ($(quiet), 1)

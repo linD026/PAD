@@ -7,7 +7,7 @@
 #include <stdlib.h> /* for atoi() */
 #include <errno.h>
 #include <getopt.h>
-#include <string.h>
+#include <string.h> /* for memcpy() */
 
 #undef pr_fmt
 #define pr_fmt "[init] "
@@ -35,7 +35,7 @@
  */
 
 static struct core_info core_info = {
-    .compiler = "gcc",
+    .compiler = "/usr/bin/gcc",
     .cflags = { 
         { "-Wall" },
         { "-O2" },
@@ -107,6 +107,8 @@ static void set_option(int argc, char *argv[])
                               &opt_index)) != -1) {
         switch (opt) {
         case OPT_COMPILER:
+            if (WARN_ON(!optarg, "option: compiler is null"))
+                break;
             strncpy(core_info.compiler, optarg, FIXED_BUF_SIZE);
             core_info.compiler[FIXED_BUF_SIZE - 1] = '\0';
             break;
@@ -115,19 +117,27 @@ static void set_option(int argc, char *argv[])
                 set_cflags = 1;
                 core_info.nr_cflags = 0;
             }
+            if (WARN_ON(!optarg, "option: cflags is null"))
+                break;
             strncpy(core_info.cflags[core_info.nr_cflags], optarg,
                     FIXED_BUF_SIZE);
             core_info.cflags[core_info.nr_cflags++][FIXED_BUF_SIZE - 1] = '\0';
             BUG_ON(core_info.nr_cflags >= CFLAGS_MAX_SIZE, "overflow");
             break;
         case OPT_PROGRAM:
+            if (WARN_ON(!optarg, "option: program is null"))
+                break;
             strncpy(core_info.program, optarg, FIXED_BUF_SIZE);
             core_info.program[FIXED_BUF_SIZE - 1] = '\0';
             break;
         case OPT_TARGET:
+            if (WARN_ON(!optarg, "option: target is null"))
+                break;
             core_info.target_pid = atoi(optarg);
             break;
         case OPT_SYMBOL:
+            if (WARN_ON(!optarg, "option: symbol is null"))
+                break;
             strncpy(core_info.symbol, optarg, FIXED_BUF_SIZE);
             core_info.symbol[FIXED_BUF_SIZE - 1] = '\0';
             break;
@@ -173,13 +183,16 @@ int main(int argc, char *argv[])
     }
 
     if (core_info.action == PAD_ACT_LOAD) {
-        verify_and_compile_program(&core_info);
-        probe_handler(&core_info);
+        int ret = verify_and_compile_program(&core_info);
+        if (unlikely(ret))
+            goto out;
+        probe_program(&core_info);
     } else if (core_info.action == PAD_ACT_UNLOAD) {
         // TODO:
     } else if (core_info.action == PAD_ACT_DEBUG) {
         // TODO:
     }
 
+out:
     return 0;
 }

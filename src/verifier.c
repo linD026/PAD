@@ -25,10 +25,9 @@ static int lw_system(char *restrict exec, char *argv[])
 
     ret = posix_spawn(&child_pid, argv[0], NULL, &attr, argv, environ);
 
-    if (unlikely(ret)) {
-        pr_info("posix_spawn:%d pid:%d error:%s\n", ret, child_pid,
-                strerror(ret));
-        WARN_ON(1, "posix_spawn failed");
+    if (WARN_ON(ret, "posix_spawn failed")) {
+        pr_info("posix_spawn:%d pid:%d error: %s\n",
+                ret, child_pid, strerror(ret));
         return -ECHILD;
     }
 
@@ -38,20 +37,21 @@ static int lw_system(char *restrict exec, char *argv[])
     return ret != -1 ? 0 : -EINVAL;
 }
 
-static int compile_program(struct core_info *info, struct prog_struct *p)
+static int compile_program(struct core_info *info)
 {
     char *argv[FIXED_BUF_SIZE] = { 0 };
     int i = 0, argc = 0, ret = 0;
 
-    sprintf(p->name, "%s.so", info->program);
+    sprintf(info->prog_compiled, "%s.so", info->program);
 
-    pr_info("compile: %s\n", p->name);
+    pr_info("compile: %s\n", info->prog_compiled);
 
     argv[argc++] = info->compiler;
     argv[argc++] = "-o";
-    argv[argc++] = p->name;
+    argv[argc++] = info->prog_compiled;
     argv[argc++] = info->program;
 
+    i = 0;
     for (char *iter = info->cflags[i]; i < info->nr_cflags;
          iter = info->cflags[++i])
         argv[argc++] = iter;
@@ -63,13 +63,16 @@ static int compile_program(struct core_info *info, struct prog_struct *p)
 
     /* Return 0, if the command succeed. */
     ret = lw_system(info->compiler, argv);
-    WARN_ON(ret, "compile(\"%s\") return %d error:%s", p->name, ret,
-            strerror(ret));
+    if (WARN_ON(ret, "compile(\"%s\") return %d error:%s",
+            info->prog_compiled, ret, strerror(ret))) {
+        for (i = 0; i < argc; i++)
+            pr_info("argv[%d]: %s\n", i, argv[i]);
+    }
 
     return ret;
 }
 
-static int get_pid_info(struct core_info *info)
+static int get_target_info(struct core_info *info)
 {
     FILE *fp = NULL;
     size_t size = 0;
@@ -93,15 +96,17 @@ static int get_pid_info(struct core_info *info)
     return 0;
 }
 
-void verify_and_compile_program(struct core_info *info)
+int verify_and_compile_program(struct core_info *info)
 {
     int ret = 0;
 
-    pr_info("%s\n", __func__);
-
-    ret = get_pid_info(info);
+    ret = get_target_info(info);
     if (unlikely(ret))
-        return;
+        return ret;
 
     pr_info("target pid binary:\n%s\n", info->target);
+
+    compile_program(info);
+
+    return 0;
 }

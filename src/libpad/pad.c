@@ -76,7 +76,7 @@ static __always_inline void *align_to_page(void *addr)
     return (void *)((unsigned long)addr & ~(page_size - 1));
 }
 
-static void text_permission_start(unsigned long address)
+static __always_inline void text_permission_start(unsigned long address)
 {
     void *page_start = align_to_page((void *)address);
     int ret =
@@ -85,7 +85,7 @@ static void text_permission_start(unsigned long address)
     WARN_ON(ret < 0, "mprotect error:%d", ret);
 }
 
-static void text_permission_end(unsigned long address)
+static __always_inline void text_permission_end(unsigned long address)
 {
     void *page_start = align_to_page((void *)address);
     int ret = mprotect(page_start, page_size, PROT_READ | PROT_EXEC);
@@ -144,22 +144,24 @@ static void disarm_pad(struct target *target)
  * The rquest from signal doesn't have a pad_probe_data, so lets check the
  * pad_flags.
  */
-static atomic_int process_probe_require = 0;
+static atomic_int pad_signal_sem = 0;
 
-static void probe_require_handler(int signal)
+static void pad_signal_handler(int signal)
 {
     struct pad_probe p = { 0 };
-    unsigned long target_address = 0;
+    char buffer[FIXED_BUF_SIZE] = { 0 };
+    void *program = NULL;
 
     /*
      * TODO: Check there doesn't have multiple signal raised at the same time.
      */
-    while (atomic_load_explicit(&process_probe_require, memory_order_acquire))
+    while (atomic_load_explicit(&pad_signal_sem, memory_order_acquire))
         ;
 
-    atomic_fetch_add_explicit(&process_probe_require, 1, memory_order_release);
+    atomic_fetch_add_explicit(&pad_signal_sem, 1, memory_order_release);
 
     if (pad_flags & PAD_SET_SHMEM_FLAG && unlikely(!shmem_data)) {
+        // TODO: allocating memory during singal?
         shmem_data = init_shmem(getpid());
         if (unlikely(!shmem_data)) {
             WARN_ON(1, "in signal, failed to set the shmem data");
@@ -167,13 +169,38 @@ static void probe_require_handler(int signal)
         }
     }
 
-    target_address = get_data_shmem(shmem_data);
+    /* Step 1. get the symbol address */
+    get_data_shmem(buffer, shmem_data->shared->symbol);
+    p.address = (unsigned long)dlsym(RTLD_DEFAULT, buffer);
+    if (WARN_ON(!p.address, "symbol:%s not found", buffer)) {
+        exit_shmem(shmem_data);
+        goto out;
+    }
 
-    p.address = target_address;
+    /* Step 2. get the program and link it. */
+    memset(buffer, '\0', FIXED_BUF_SIZE);
+    get_data_shmem(buffer, shmem_data->shared->path);
+    // TODO: handle dlcose
+    program = dlopen(buffer, RTLD_LAZY);
+    if (WARN_ON(!program, "program %s not found", buffer)) {
+        exit_shmem(shmem_data);
+        goto out;
+    }
 
-    // register
+    // TODO: handle the enter symbol properly.
+    p.breakpoint = (unsigned long)dlsym(program, "__pad_enter_point");
+    if (WARN_ON(!p.breakpoint, "breakpoint:%s not found", "__pad_enter_point")) {
+        dlclose(program);
+        exit_shmem(shmem_data);
+        goto out;
+    }
 
-    atomic_fetch_add_explicit(&process_probe_require, -1, memory_order_release);
+    pad_register_probe(&p);
+
+    ack_shmem(shmem_data);
+
+out:
+    atomic_fetch_add_explicit(&pad_signal_sem, -1, memory_order_release);
 }
 
 /* Return the previous refcount. */
@@ -310,7 +337,7 @@ int pad_init(pad_handler_t handler, unsigned int flags)
 
     page_size = (size_t)sysconf(_SC_PAGESIZE);
 
-    signal(SIGTRAP, probe_require_handler);
+    signal(SIGTRAP, pad_signal_handler);
 
     atomic_store_explicit(&pad_arm_handler, handler, memory_order_release);
 

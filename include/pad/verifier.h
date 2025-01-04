@@ -3,6 +3,6 @@
 
 struct core_info;
 
-void verify_and_compile_program(struct core_info *info);
+int verify_and_compile_program(struct core_info *info);
 
 #endif /* __PAD_VERIFIER_H__ */

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include "../../include/uapi/pad.h"
 
 void __pad_trace target(void)
@@ -9,13 +10,14 @@ void __pad_trace target(void)
 void __pad_handler handler(void)
 {
     printf("this is internal handler\n");
-    pad_buitlin_handler();
+    pad_builtin_handler();
 }
 
 int main(void)
 {
-    pad_init(handler, 0);
+    pad_init(handler, PAD_SET_SHMEM_FLAG);
 
+    printf("pid: %d\n", getpid());
     printf("Please insert the breakpoint...\n");
     getchar();
     printf("breakpoint entering...\n");

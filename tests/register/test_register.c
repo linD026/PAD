@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include "../printut.h"
 #include "../../include/uapi/pad.h"
 
 #define LIST_SIZE 4
@@ -9,15 +9,15 @@ static __pad_handler void handler(void)
     pad_builtin_handler();
 }
 
-#define DEFINE_TARGET(__n)                               \
-    static PAD_ENTER_POINT(breakpoint_##__n)             \
-    {                                                    \
-        printf("breakpoint #%s fuction called\n", #__n); \
-    }                                                    \
-                                                         \
-    static __pad_trace void target_##__n(void)           \
-    {                                                    \
-        printf("target #%s function called\n", #__n);    \
+#define DEFINE_TARGET(__n)                                \
+    static PAD_ENTER_POINT(breakpoint_##__n)              \
+    {                                                     \
+        pr_info("breakpoint #%s fuction called\n", #__n); \
+    }                                                     \
+                                                          \
+    static __pad_trace void target_##__n(void)            \
+    {                                                     \
+        pr_info("target #%s function called\n", #__n);    \
     }
 
 DEFINE_TARGET(1)
@@ -49,8 +49,6 @@ int test_register_unregister(void)
 {
     struct pad_probe list[LIST_SIZE] = { 0 };
 
-    printf("\n%s\n", __func__);
-
     for (int i = 0; i < LIST_SIZE; i++) {
         list[i].address = (unsigned long)targets[i];
         list[i].breakpoint = (unsigned long)breakpoints[i];
@@ -67,8 +65,6 @@ int test_register_unregister(void)
 int test_mult_register(void)
 {
     struct pad_probe list[LIST_SIZE] = { 0 };
-
-    printf("\n%s\n", __func__);
 
     for (int i = 0; i < LIST_SIZE; i++) {
         list[i].address = (unsigned long)targets[0];
@@ -89,8 +85,8 @@ int test_mult_register(void)
 int main(void)
 {
     pad_init(handler, 0);
-    test_register_unregister();
-    test_mult_register();
+    UNIT_BUG_ON(test_register_unregister());
+    UNIT_BUG_ON(test_mult_register());
     pad_exit();
 
     return 0;
