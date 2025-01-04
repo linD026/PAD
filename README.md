@@ -81,7 +81,7 @@ int pad_exit(void);
 Add `__pad_trace` attribute to the target function.
 
 ```c
-static __pad_trace void function(...) { ... }
+static void __pad_trace function(...) { ... }
 ```
 
 ## External (self-defined) handler
@@ -89,7 +89,7 @@ static __pad_trace void function(...) { ... }
 Add `__pad_handler` attribute to the handler function.
 
 ```c
-static __pad_handler void handler(void) {
+static void __pad_handler handler(void) {
     ...
     /* Call all the breakpoints. */
     pad_builtin_handler();
