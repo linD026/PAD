@@ -89,7 +89,7 @@ static __pad_trace void function(...) { ... }
 Add `__pad_handler` attribute to the handler function.
 
 ```c
-static __pad_handler handler(void) {
+static __pad_handler void handler(void) {
     ...
     /* Call all the breakpoints. */
     pad_builtin_handler();
