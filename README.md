@@ -54,7 +54,7 @@ Options:
 ```c
 #include "include/uapi/pad.h"
 
-static PAD_ENTER_POINT(breakpoint) { ... }
+PAD_ENTER_POINT(breakpoint) { ... }
 
 struct pad_probe {
     /* target function */
