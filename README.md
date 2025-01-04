@@ -76,7 +76,7 @@ int pad_init(pad_handler_t handler, unsigned int flags);
 int pad_exit(void);
 ```
 
-## Target function
+#### Target function
 
 Add `__pad_trace` attribute to the target function.
 
@@ -84,7 +84,7 @@ Add `__pad_trace` attribute to the target function.
 static void __pad_trace function(...) { ... }
 ```
 
-## External (self-defined) handler
+#### External (self-defined) handler
 
 Add `__pad_handler` attribute to the handler function.
 
