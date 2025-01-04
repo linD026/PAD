@@ -106,3 +106,4 @@ static void __pad_handler handler(void) {
 - set the prefix of shmem it is located in /dev/shmem
 - UNLOAD and DEBUG actions
 - eBPF verifier
+- handler disable feature (per-thread var)
