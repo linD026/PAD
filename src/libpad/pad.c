@@ -189,7 +189,8 @@ static void pad_signal_handler(int signal)
 
     // TODO: handle the enter symbol properly.
     p.breakpoint = (unsigned long)dlsym(program, "__pad_enter_point");
-    if (WARN_ON(!p.breakpoint, "breakpoint:%s not found", "__pad_enter_point")) {
+    if (WARN_ON(!p.breakpoint, "breakpoint:%s not found",
+                "__pad_enter_point")) {
         dlclose(program);
         exit_shmem(shmem_data);
         goto out;

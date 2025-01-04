@@ -32,7 +32,7 @@ struct shmem_data *init_shmem(int pid);
 void exit_shmem(struct shmem_data *s);
 int ack_shmem(struct shmem_data *s);
 int wait_shmem(struct shmem_data *s);
-int post_data_shmem(char * restrict shared_buffer, char  * restrict data);
-int get_data_shmem(char * restrict buffer, const char * restrict shared_buffer);
+int post_data_shmem(char *restrict shared_buffer, char *restrict data);
+int get_data_shmem(char *restrict buffer, const char *restrict shared_buffer);
 
 #endif /* __PAD_SHMEM_H__ */

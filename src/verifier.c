@@ -26,8 +26,8 @@ static int lw_system(char *restrict exec, char *argv[])
     ret = posix_spawn(&child_pid, argv[0], NULL, &attr, argv, environ);
 
     if (WARN_ON(ret, "posix_spawn failed")) {
-        pr_info("posix_spawn:%d pid:%d error: %s\n",
-                ret, child_pid, strerror(ret));
+        pr_info("posix_spawn:%d pid:%d error: %s\n", ret, child_pid,
+                strerror(ret));
         return -ECHILD;
     }
 
@@ -63,8 +63,8 @@ static int compile_program(struct core_info *info)
 
     /* Return 0, if the command succeed. */
     ret = lw_system(info->compiler, argv);
-    if (WARN_ON(ret, "compile(\"%s\") return %d error:%s",
-            info->prog_compiled, ret, strerror(ret))) {
+    if (WARN_ON(ret, "compile(\"%s\") return %d error:%s", info->prog_compiled,
+                ret, strerror(ret))) {
         for (i = 0; i < argc; i++)
             pr_info("argv[%d]: %s\n", i, argv[i]);
     }

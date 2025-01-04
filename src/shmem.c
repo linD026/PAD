@@ -80,13 +80,13 @@ int wait_shmem(struct shmem_data *s)
     return sem_wait(&s->shared->ack);
 }
 
-int post_data_shmem(char * restrict shared_buffer, char  * restrict data)
+int post_data_shmem(char *restrict shared_buffer, char *restrict data)
 {
     memcpy(shared_buffer, data, FIXED_BUF_SIZE);
     return 0;
 }
 
-int get_data_shmem(char * restrict buffer, const char * restrict shared_buffer)
+int get_data_shmem(char *restrict buffer, const char *restrict shared_buffer)
 {
     memcpy(buffer, shared_buffer, FIXED_BUF_SIZE);
     return 0;

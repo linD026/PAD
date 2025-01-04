@@ -32,10 +32,13 @@ struct pad_probe {
     unsigned int flags;
 };
 
-#define PAD_ENTER_POINT(name) \
-    void name(void);\
+#define PAD_ENTER_POINT(name)                                      \
+    void name(void);                                               \
     void __attribute__((aligned(64))) __attribute__((optimize(0))) \
-    __pad_enter_point(void) { name(); } \
+    __pad_enter_point(void)                                        \
+    {                                                              \
+        name();                                                    \
+    }                                                              \
     void name(void)
 
 void pad_builtin_handler(void);
