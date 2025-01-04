@@ -42,12 +42,13 @@ Currently, `x86-64` only.
 PAD - the userspace application debugger
 Usage: pad [options] file...
 Options:
-  --COMPILER       The compiler for building probe program
-  --CFLAGS         The flag pass to the compiler
-  --PROGRAM        The file of probe program to compile
-  --TARGET_PID     The pid of process to probe
-  --SYMBOL         The symbol of function want to probe
-  --ACTION         The action of pad <LOAD|UNLOAD|DEBUG>
+  --COMPILER       The compiler for building probe program.
+  --CFLAGS         The flag pass to the compiler.
+  --PROGRAM        The file of probe program to compile.
+  --TARGET_PID     The pid of process to probe.
+  --SYMBOL         The symbol of function want to probe.
+  --ACTION         The action of pad <LOAD|UNLOAD|DEBUG>.
+  --help           Display this information.
 ```
 
 ### libpad - APIs

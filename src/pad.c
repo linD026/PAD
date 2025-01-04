@@ -157,18 +157,20 @@ static void set_option(int argc, char *argv[])
             printf("PAD - the userspace application debugger\n");
             printf("Usage: pad [options] file...\n");
             printf("Options:\n");
-            printf("  %-16s %s\n",
-                    "--COMPILER", "The compiler for building probe program");
-            printf("  %-16s %s\n",
-                    "--CFLAGS", "The flag pass to the compiler");
-            printf("  %-16s %s\n",
-                    "--PROGRAM", "The file of probe program to compile");
-            printf("  %-16s %s\n",
-                    "--TARGET_PID", "The pid of process to probe");
-            printf("  %-16s %s\n",
-                    "--SYMBOL", "The symbol of function want to probe");
-            printf("  %-16s %s\n",
-                    "--ACTION", "The action of pad <LOAD|UNLOAD|DEBUG>");
+            printf("  %-16s %s\n", "--COMPILER",
+                   "The compiler for building probe program.");
+            printf("  %-16s %s\n", "--CFLAGS",
+                   "The flag pass to the compiler.");
+            printf("  %-16s %s\n", "--PROGRAM",
+                   "The file of probe program to compile.");
+            printf("  %-16s %s\n", "--TARGET_PID",
+                   "The pid of process to probe.");
+            printf("  %-16s %s\n", "--SYMBOL",
+                   "The symbol of function want to probe.");
+            printf("  %-16s %s\n", "--ACTION",
+                   "The action of pad <LOAD|UNLOAD|DEBUG>.");
+            printf("  %-16s %s\n", "--help", "Display this information.");
+
             exit(0);
 
         default:
