@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
             goto out;
         probe_program(&core_info);
     } else if (core_info.action == PAD_ACT_UNLOAD) {
-        // TODO:
+        probe_program(&core_info);
     } else if (core_info.action == PAD_ACT_DEBUG) {
         // TODO:
     }

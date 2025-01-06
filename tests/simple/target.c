@@ -24,6 +24,12 @@ int main(void)
     target();
     printf("breakpoint exiting...\n");
 
+    printf("Please remove the breakpoint...\n");
+    getchar();
+    printf("breakpoint entering...\n");
+    target();
+    printf("breakpoint exiting...\n");
+
     pad_exit();
 
     return 0;

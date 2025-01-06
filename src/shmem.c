@@ -28,7 +28,7 @@ struct shmem_data *init_shmem(int pid)
 
     s->pid = pid;
 
-    snprintf(s->path_name, FIXED_BUF_SIZE, CONFIG_SHMEM_ROOT "/%d", pid);
+    snprintf(s->path_name, FIXED_BUF_SIZE, CONFIG_SHMEM_ROOT "/libpad-%d", pid);
     s->path_name[FIXED_BUF_SIZE - 1] = '\0';
 
     s->fd = shm_open(s->path_name, O_CREAT | O_RDWR, 0600);
@@ -47,10 +47,7 @@ struct shmem_data *init_shmem(int pid)
     if (WARN_ON(sem_init(&s->shared->ack, 1, 0) == -1, "shmem sem_init"))
         goto cleanup_mmap;
 
-    memset(s->shared->symbol, '\0', CONFIG_SHMEM_BUF_SIZE);
-    memset(s->shared->path, '\0', CONFIG_SHMEM_BUF_SIZE);
-
-    s->shared->action = 0;
+    cleanup_shmem(s);
 
     return s;
 
@@ -69,7 +66,7 @@ void exit_shmem(struct shmem_data *s)
     if (WARN_ON(!s, "shmem_data is NULL"))
         return;
     munmap(s->shared, sizeof(struct shared_shmem_data));
-    shm_unlink(s->path_name);
+    //WARN_ON(shm_unlink(s->path_name), "shm_unlink error");
     free(s);
 }
 
@@ -81,6 +78,14 @@ int ack_shmem(struct shmem_data *s)
 int wait_shmem(struct shmem_data *s)
 {
     return sem_wait(&s->shared->ack);
+}
+
+void cleanup_shmem(struct shmem_data *s)
+{
+    memset(s->shared->symbol, '\0', CONFIG_SHMEM_BUF_SIZE);
+    memset(s->shared->path, '\0', CONFIG_SHMEM_BUF_SIZE);
+
+    s->shared->action = 0;
 }
 
 int post_data_shmem(char *restrict shared_buffer, char *restrict data)

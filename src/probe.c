@@ -22,10 +22,14 @@ void probe_program(struct core_info *info)
     if (WARN_ON(!s, "init_shmem failed"))
         return;
 
-    pr_debug("post data:%s\n", info->prog_compiled);
-    post_data_shmem(s->shared->path, info->prog_compiled);
-    pr_debug("post data:%s\n", info->symbol);
+    if (info->prog_compiled[0] != '\0') {
+        pr_debug("post path:%s\n", info->prog_compiled);
+        post_data_shmem(s->shared->path, info->prog_compiled);
+    }
+
+    pr_debug("post symbol:%s\n", info->symbol);
     post_data_shmem(s->shared->symbol, info->symbol);
+
     pr_debug("post action:%s\n", act_table[info->action]);
     set_action_shmem(s, info->action);
 

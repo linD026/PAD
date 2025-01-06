@@ -39,6 +39,8 @@ void exit_shmem(struct shmem_data *s);
 int ack_shmem(struct shmem_data *s);
 int wait_shmem(struct shmem_data *s);
 
+void cleanup_shmem(struct shmem_data *s);
+
 int post_data_shmem(char *restrict shared_buffer, char *restrict data);
 int get_data_shmem(char *restrict buffer, const char *restrict shared_buffer);
 

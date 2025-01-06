@@ -164,6 +164,7 @@ static void pad_signal_handler(int signal)
 
     if (pad_flags & PAD_SET_SHMEM_FLAG && unlikely(!shmem_data)) {
         // TODO: allocating memory during singal?
+        pr_debug("called init_shmem\n");
         shmem_data = init_shmem(getpid());
         if (unlikely(!shmem_data)) {
             WARN_ON(1, "in signal, failed to set the shmem data");
@@ -171,7 +172,14 @@ static void pad_signal_handler(int signal)
         }
     }
 
-    /* Step 1. get the symbol address */
+    pr_debug("shared memory: action:%d, symbol:%s, path:%s\n",
+             shmem_data->shared->action, shmem_data->shared->symbol,
+             shmem_data->shared->path);
+
+    /* Step 1. get the action */
+    action = get_action_shmem(shmem_data);
+
+    /* Step 2. get the symbol address */
     get_data_shmem(buffer, shmem_data->shared->symbol);
     p.address = (unsigned long)dlsym(RTLD_DEFAULT, buffer);
     if (WARN_ON(!p.address, "symbol:%s not found", buffer)) {
@@ -179,36 +187,44 @@ static void pad_signal_handler(int signal)
         goto out;
     }
 
-    /* Step 2. get the program and link it. */
-    memset(buffer, '\0', FIXED_BUF_SIZE);
-    get_data_shmem(buffer, shmem_data->shared->path);
-    // TODO: handle dlcose
-    program = dlopen(buffer, RTLD_LAZY);
-    if (WARN_ON(!program, "program %s not found", buffer)) {
-        exit_shmem(shmem_data);
-        goto out;
+    /* Step 3. get the program and link it. */
+    if (action == PAD_ACT_LOAD) {
+        memset(buffer, '\0', FIXED_BUF_SIZE);
+        get_data_shmem(buffer, shmem_data->shared->path);
+        // TODO: handle dlcose
+        program = dlopen(buffer, RTLD_LAZY);
+        if (WARN_ON(!program, "program %s not found", buffer)) {
+            exit_shmem(shmem_data);
+            goto out;
+        }
+
+        // TODO: handle the enter symbol properly.
+        p.breakpoint = (unsigned long)dlsym(program, "__pad_enter_point");
+        if (WARN_ON(!p.breakpoint, "breakpoint:%s not found",
+                    "__pad_enter_point")) {
+            dlclose(program);
+            exit_shmem(shmem_data);
+            goto out;
+        }
     }
 
-    // TODO: handle the enter symbol properly.
-    p.breakpoint = (unsigned long)dlsym(program, "__pad_enter_point");
-    if (WARN_ON(!p.breakpoint, "breakpoint:%s not found",
-                "__pad_enter_point")) {
-        dlclose(program);
-        exit_shmem(shmem_data);
-        goto out;
-    }
-
-    action = get_action_shmem(shmem_data);
+    /* Step 4. do action. */
     switch (action) {
     case PAD_ACT_LOAD:
+        pr_debug("action: load: breakpoint:%p, address:%p\n",
+                 (void *)p.breakpoint, (void *)p.address);
         pad_register_probe(&p);
         break;
     case PAD_ACT_UNLOAD:
+        pr_debug("action: unload: breakpoint:%p, address:%p\n",
+                 (void *)p.breakpoint, (void *)p.address);
         pad_unregister_probe(&p);
         break;
     default:
         WARN_ON(1, "libpad unkown action:%d\n", action);
     }
+
+    cleanup_shmem(shmem_data);
 
     ack_shmem(shmem_data);
 
