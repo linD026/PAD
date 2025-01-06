@@ -26,8 +26,8 @@ static int lw_system(char *restrict exec, char *argv[])
     ret = posix_spawn(&child_pid, argv[0], NULL, &attr, argv, environ);
 
     if (WARN_ON(ret, "posix_spawn failed")) {
-        pr_info("posix_spawn:%d pid:%d error: %s\n", ret, child_pid,
-                strerror(ret));
+        pr_debug("posix_spawn:%d pid:%d error: %s\n", ret, child_pid,
+                 strerror(ret));
         return -ECHILD;
     }
 
@@ -44,7 +44,7 @@ static int compile_program(struct core_info *info)
 
     sprintf(info->prog_compiled, "%s.so", info->program);
 
-    pr_info("compile: %s\n", info->prog_compiled);
+    pr_debug("compile: %s\n", info->prog_compiled);
 
     argv[argc++] = info->compiler;
     argv[argc++] = "-o";
@@ -66,7 +66,7 @@ static int compile_program(struct core_info *info)
     if (WARN_ON(ret, "compile(\"%s\") return %d error:%s", info->prog_compiled,
                 ret, strerror(ret))) {
         for (i = 0; i < argc; i++)
-            pr_info("argv[%d]: %s\n", i, argv[i]);
+            pr_debug("argv[%d]: %s\n", i, argv[i]);
     }
 
     return ret;
@@ -104,7 +104,7 @@ int verify_and_compile_program(struct core_info *info)
     if (unlikely(ret))
         return ret;
 
-    pr_info("target pid binary:\n%s\n", info->target);
+    pr_debug("target pid binary:\n%s\n", info->target);
 
     compile_program(info);
 

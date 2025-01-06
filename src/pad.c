@@ -20,11 +20,11 @@
  *                            +----------+            +-------------------+
  *                            | verifier |            |
  *                            +----------+          +---------------------+
- * +-------------------+           |                | Target application  |
- * | pad probe program |---+       |        debug   +---------------------+
- * +-------------------+   |  +----------+  unload  |                     |
- *                         +- | pad core | -------> | breakpoint function |
- *                            +----------+   load   +---------------------+
+ * +-------------------+           |        load    | Target application  |
+ * | robe program      |---+       |        unload  +---------------------+
+ * +-------------------+   |  +----------+  debug   |                     |
+ *                         +- | pad core | -------> | traceable function  |
+ *                            +----------+          +---------------------+
  *                              |     |                       ^         |
  *                              |     |                       |         |
  *                              |     \                       |    [mmap/shmem]
@@ -73,7 +73,7 @@ static struct opt_data opt_data = {
 #define ACT_ENTRY(act) [PAD_ACT_##act] = #act
 
 /* clang-format off */
-static const char *act_table[] = {
+const char *act_table[] = {
     ACT_ENTRY(LOAD),
     ACT_ENTRY(UNLOAD),
     ACT_ENTRY(DEBUG)

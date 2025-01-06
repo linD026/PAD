@@ -4,6 +4,7 @@
 #endif
 
 #include <pad/pad.h>
+#include <pad/action.h>
 #include <pad/probe.h>
 #include <pad/logs.h>
 #include <pad/shmem.h>
@@ -21,16 +22,18 @@ void probe_program(struct core_info *info)
     if (WARN_ON(!s, "init_shmem failed"))
         return;
 
-    pr_info("post data:%s\n", info->prog_compiled);
+    pr_debug("post data:%s\n", info->prog_compiled);
     post_data_shmem(s->shared->path, info->prog_compiled);
-    pr_info("post data:%s\n", info->symbol);
+    pr_debug("post data:%s\n", info->symbol);
     post_data_shmem(s->shared->symbol, info->symbol);
+    pr_debug("post action:%s\n", act_table[info->action]);
+    set_action_shmem(s, info->action);
 
     kill(info->target_pid, SIGTRAP);
-    pr_info("signal pid %d\n", info->target_pid);
+    pr_debug("signal pid %d\n", info->target_pid);
 
     wait_shmem(s);
-    pr_info("received the ack\n");
+    pr_debug("received the ack\n");
 
     exit_shmem(s);
 }

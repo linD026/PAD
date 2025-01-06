@@ -1,17 +1,12 @@
 #ifndef __PAD_H__
 #define __PAD_H__
 
+#ifndef __PAD_ACTION_H__
+#include "action.h"
+#endif
+
 #define FIXED_BUF_SIZE 256
 #define CFLAGS_MAX_SIZE 16
-
-/* act_table[] is in src/pad.c */
-enum action_type {
-    PAD_ACT_DUMP = 0,
-    PAD_ACT_LOAD,
-    PAD_ACT_UNLOAD,
-    PAD_ACT_DEBUG,
-    PAD_NR_ACTION,
-};
 
 struct core_info {
     struct /* compiler info*/ {

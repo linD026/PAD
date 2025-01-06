@@ -1,6 +1,7 @@
 #define _GNU_SOURCE /* for rwlock, _SC_PAGESIZE */
 #include <arch/common.h>
 #include <uapi/pad.h>
+#include <pad/action.h>
 #include <pad/logs.h>
 #include <pad/shmem.h>
 #include <pad/list.h>
@@ -151,6 +152,7 @@ static void pad_signal_handler(int signal)
     struct pad_probe p = { 0 };
     char buffer[FIXED_BUF_SIZE] = { 0 };
     void *program = NULL;
+    enum action_type action = PAD_ACT_DUMP;
 
     /*
      * TODO: Check there doesn't have multiple signal raised at the same time.
@@ -196,7 +198,17 @@ static void pad_signal_handler(int signal)
         goto out;
     }
 
-    pad_register_probe(&p);
+    action = get_action_shmem(shmem_data);
+    switch (action) {
+    case PAD_ACT_LOAD:
+        pad_register_probe(&p);
+        break;
+    case PAD_ACT_UNLOAD:
+        pad_unregister_probe(&p);
+        break;
+    default:
+        WARN_ON(1, "libpad unkown action:%d\n", action);
+    }
 
     ack_shmem(shmem_data);
 
@@ -238,9 +250,7 @@ static int insert_breakpoint(struct target *target, struct pad_probe *p)
 
     pthread_rwlock_unlock(&target->lock);
 
-#ifdef CONFIG_DEBUG
-    pr_info("inserted\n");
-#endif
+    pr_debug("inserted\n");
 
 out:
     if (prealloc)
@@ -284,9 +294,7 @@ pad_builtin_handler(void)
         return;
     }
 
-#ifdef CONFIG_DEBUG
-    pr_info("address:%p\n", (void *)address);
-#endif
+    pr_debug("address:%p\n", (void *)address);
 
     pthread_mutex_lock(&pad_data.lock);
     list_for_each_entry (target, &pad_data.list, node) {

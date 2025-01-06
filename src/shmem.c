@@ -3,6 +3,7 @@
 #define _POSIX_C_SOURCE 200112L
 #endif
 
+#include <pad/action.h>
 #include <pad/logs.h>
 #include <pad/shmem.h>
 
@@ -49,6 +50,8 @@ struct shmem_data *init_shmem(int pid)
     memset(s->shared->symbol, '\0', CONFIG_SHMEM_BUF_SIZE);
     memset(s->shared->path, '\0', CONFIG_SHMEM_BUF_SIZE);
 
+    s->shared->action = 0;
+
     return s;
 
 cleanup_mmap:
@@ -90,4 +93,15 @@ int get_data_shmem(char *restrict buffer, const char *restrict shared_buffer)
 {
     memcpy(buffer, shared_buffer, FIXED_BUF_SIZE);
     return 0;
+}
+
+int set_action_shmem(struct shmem_data *s, enum action_type act)
+{
+    s->shared->action = act;
+    return 0;
+}
+
+enum action_type get_action_shmem(struct shmem_data *s)
+{
+    return s->shared->action;
 }

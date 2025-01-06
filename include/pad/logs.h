@@ -26,6 +26,12 @@
         fprintf(logger_err_stream, pr_fmt fmt, ##__VA_ARGS__); \
     } while (0)
 
+#ifdef CONFIG_DEBUG
+#define pr_debug pr_info
+#else
+#define pr_debug(...)
+#endif
+
 void pad_dump_stack(void);
 void __pad_exit(int exit_code);
 
