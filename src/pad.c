@@ -185,7 +185,8 @@ int main(int argc, char *argv[])
 
     pr_info("PAD core application for load/unload/debug\n");
 
-    BUG_ON(!strlen(core_info.compiler), "unset compiler");
+    if (WARN_ON(!strlen(core_info.compiler), "unset compiler"))
+        return -EINVAL;
     pr_info("compiler: %s\n", core_info.compiler);
     pr_info("flags:\n");
     for (int i = 0; i < core_info.nr_cflags; i++) {
@@ -193,22 +194,24 @@ int main(int argc, char *argv[])
         pr_info("    %s\n", core_info.cflags[i]);
     }
 
-    BUG_ON(!strlen(core_info.program), "unset program");
+    if (WARN_ON(!strlen(core_info.program), "unset program"))
+        return -EINVAL;
     pr_info("program file: %s\n", core_info.program);
 
-    BUG_ON(core_info.target_pid == -1, "unset program binary");
+    if (WARN_ON(core_info.target_pid == -1, "unset program binary"))
+        return -EINVAL;
     pr_info("target program pid: %d\n", core_info.target_pid);
 
-    BUG_ON(core_info.action <= PAD_ACT_DUMP ||
-               core_info.action >= PAD_NR_ACTION,
-           "core_info.action is corrupted:%d", core_info.action);
+    if (WARN_ON(core_info.action <= PAD_ACT_DUMP ||
+                    core_info.action >= PAD_NR_ACTION,
+                "core_info.action is corrupted:%d", core_info.action))
+        return -EINVAL;
 
     pr_info("action: %s\n", act_table[core_info.action]);
 
-    if (core_info.action == PAD_ACT_LOAD) {
-        BUG_ON(!strlen(core_info.symbol), "unset program symbol");
-        pr_info("probe symbol code: %s\n", core_info.symbol);
-    }
+    if (WARN_ON(!strlen(core_info.symbol), "unset program symbol"))
+        return -EINVAL;
+    pr_info("probe symbol code: %s\n", core_info.symbol);
 
     if (core_info.action == PAD_ACT_LOAD) {
         int ret = verify_and_compile_program(&core_info);
