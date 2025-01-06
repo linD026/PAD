@@ -6,6 +6,7 @@
 #endif
 
 #include <semaphore.h>
+#include <stdatomic.h>
 
 #ifndef FIXED_BUF_SIZE
 #define FIXED_BUF_SIZE 256
@@ -21,6 +22,7 @@
 
 struct shared_shmem_data {
     unsigned int action;
+    atomic_int refcount;
     sem_t ack;
     char symbol[CONFIG_SHMEM_BUF_SIZE];
     char path[CONFIG_SHMEM_BUF_SIZE];

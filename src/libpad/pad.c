@@ -147,6 +147,9 @@ static void disarm_pad(struct target *target)
  */
 static atomic_int pad_signal_sem = 0;
 
+// TODO
+static unsigned long __td_breakpoint = 0;
+
 static void pad_signal_handler(int signal)
 {
     struct pad_probe p = { 0 };
@@ -200,12 +203,17 @@ static void pad_signal_handler(int signal)
 
         // TODO: handle the enter symbol properly.
         p.breakpoint = (unsigned long)dlsym(program, "__pad_enter_point");
+        __td_breakpoint = p.breakpoint;
         if (WARN_ON(!p.breakpoint, "breakpoint:%s not found",
                     "__pad_enter_point")) {
             dlclose(program);
             exit_shmem(shmem_data);
             goto out;
         }
+    }
+
+    if (action == PAD_ACT_UNLOAD) {
+        p.breakpoint = __td_breakpoint;
     }
 
     /* Step 4. do action. */

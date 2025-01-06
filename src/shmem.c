@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <unistd.h> /* for ftruncate */
 #include <string.h> /* for memset */
+#include <stdatomic.h>
 
 #undef pr_fmt
 #define pr_fmt "[shmem] "
@@ -47,6 +48,8 @@ struct shmem_data *init_shmem(int pid)
     if (WARN_ON(sem_init(&s->shared->ack, 1, 0) == -1, "shmem sem_init"))
         goto cleanup_mmap;
 
+    atomic_fetch_add(&s->shared->refcount, 1);
+    pr_debug("init_shmem: refcount: %d\n", atomic_load(&s->shared->refcount));
     cleanup_shmem(s);
 
     return s;
@@ -65,8 +68,11 @@ void exit_shmem(struct shmem_data *s)
 {
     if (WARN_ON(!s, "shmem_data is NULL"))
         return;
+    pr_debug("exit_shmem: refcount: %d\n",
+             atomic_load(&s->shared->refcount) - 1);
+    if (atomic_fetch_add(&s->shared->refcount, -1) == 1)
+        WARN_ON(shm_unlink(s->path_name), "shm_unlink error");
     munmap(s->shared, sizeof(struct shared_shmem_data));
-    //WARN_ON(shm_unlink(s->path_name), "shm_unlink error");
     free(s);
 }
 
