@@ -61,7 +61,7 @@ struct opt_data {
 
 static struct opt_data opt_data = {
     .options = { { "COMPILER", required_argument, 0, OPT_COMPILER },
-                 { "CFLAGS", optional_argument, 0, OPT_CFLAGS },
+                 { "CFLAGS", required_argument, 0, OPT_CFLAGS },
                  { "PROGRAM", required_argument, 0, OPT_PROGRAM },
                  { "TARGET_PID", required_argument, 0, OPT_TARGET },
                  { "SYMBOL", required_argument, 0, OPT_SYMBOL },
