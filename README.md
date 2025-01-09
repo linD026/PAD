@@ -45,6 +45,7 @@ Options:
   --COMPILER       The compiler for building probe program.
   --CFLAGS         The flag pass to the compiler.
   --PROGRAM        The file of probe program to compile.
+  --ENTERPOINT     The symbol of the enterpoint for the probe program.
   --TARGET_PID     The pid of process to probe.
   --SYMBOL         The symbol of function want to probe.
   --ACTION         The action of pad <LOAD|UNLOAD|DEBUG>.

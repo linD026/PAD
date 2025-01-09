@@ -27,6 +27,9 @@ void probe_program(struct core_info *info)
         post_data_shmem(s->shared->path, info->prog_compiled);
     }
 
+    pr_debug("post enterpoint symbol:%s\n", info->enterpoint);
+    post_data_shmem(s->shared->enterpoint, info->enterpoint);
+
     pr_debug("post symbol:%s\n", info->symbol);
     post_data_shmem(s->shared->symbol, info->symbol);
 

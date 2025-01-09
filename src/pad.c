@@ -47,13 +47,14 @@ static struct core_info core_info = {
 #define OPT_COMPILER 1
 #define OPT_CFLAGS 2
 #define OPT_PROGRAM 3
-#define OPT_TARGET 4
-#define OPT_ACTION 5
-#define OPT_SYMBOL 6
-#define OPT_HELP 7
+#define OPT_ENTERPOINT 4
+#define OPT_TARGET 5
+#define OPT_ACTION 6
+#define OPT_SYMBOL 7
+#define OPT_HELP 8
 
-#define NR_OPTION 7
-#define OPT_STRING "1234567"
+#define NR_OPTION 8
+#define OPT_STRING "12345678"
 
 struct opt_data {
     struct option options[NR_OPTION + 1];
@@ -63,6 +64,7 @@ static struct opt_data opt_data = {
     .options = { { "COMPILER", required_argument, 0, OPT_COMPILER },
                  { "CFLAGS", required_argument, 0, OPT_CFLAGS },
                  { "PROGRAM", required_argument, 0, OPT_PROGRAM },
+                 { "ENTERPOINT", required_argument, 0, OPT_ENTERPOINT },
                  { "TARGET_PID", required_argument, 0, OPT_TARGET },
                  { "SYMBOL", required_argument, 0, OPT_SYMBOL },
                  { "ACTION", required_argument, 0, OPT_ACTION },
@@ -136,6 +138,13 @@ static void set_option(int argc, char *argv[])
             strncpy(core_info.program, optarg, FIXED_BUF_SIZE);
             core_info.program[FIXED_BUF_SIZE - 1] = '\0';
             break;
+        case OPT_ENTERPOINT:
+            if (WARN_ON(!optarg, "option: enterpoint is null (%s)",
+                        opt_data.options[opt_index].name))
+                break;
+            strncpy(core_info.enterpoint, optarg, FIXED_BUF_SIZE);
+            core_info.enterpoint[FIXED_BUF_SIZE - 1] = '\0';
+            break;
         case OPT_TARGET:
             if (WARN_ON(!optarg, "option: target is null (%s)",
                         opt_data.options[opt_index].name))
@@ -163,6 +172,8 @@ static void set_option(int argc, char *argv[])
                    "The flag pass to the compiler.");
             printf("  %-16s %s\n", "--PROGRAM",
                    "The file of probe program to compile.");
+            printf("  %-16s %s\n", "--ENTERPOINT",
+                   "The symbol of the enterpoint for the probe program.");
             printf("  %-16s %s\n", "--TARGET_PID",
                    "The pid of process to probe.");
             printf("  %-16s %s\n", "--SYMBOL",
@@ -197,6 +208,10 @@ int main(int argc, char *argv[])
     if (WARN_ON(!strlen(core_info.program), "unset program"))
         return -EINVAL;
     pr_info("program file: %s\n", core_info.program);
+
+    if (WARN_ON(!strlen(core_info.enterpoint), "unset enterpoint"))
+        return -EINVAL;
+    pr_info("enterpoint symbol: %s\n", core_info.enterpoint);
 
     if (WARN_ON(core_info.target_pid == -1, "unset program binary"))
         return -EINVAL;

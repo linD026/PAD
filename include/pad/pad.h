@@ -17,6 +17,7 @@ struct core_info {
     struct /* probe program */ {
         char program[FIXED_BUF_SIZE];
         char prog_compiled[FIXED_BUF_SIZE + FIXED_BUF_SIZE];
+        char enterpoint[FIXED_BUF_SIZE];
     };
     struct /* target info */ {
         char target[FIXED_BUF_SIZE];

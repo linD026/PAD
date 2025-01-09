@@ -90,6 +90,7 @@ void cleanup_shmem(struct shmem_data *s)
 {
     memset(s->shared->symbol, '\0', CONFIG_SHMEM_BUF_SIZE);
     memset(s->shared->path, '\0', CONFIG_SHMEM_BUF_SIZE);
+    memset(s->shared->enterpoint, '\0', CONFIG_SHMEM_BUF_SIZE);
 
     s->shared->action = 0;
 }

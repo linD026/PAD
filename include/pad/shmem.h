@@ -26,6 +26,7 @@ struct shared_shmem_data {
     sem_t ack;
     char symbol[CONFIG_SHMEM_BUF_SIZE];
     char path[CONFIG_SHMEM_BUF_SIZE];
+    char enterpoint[CONFIG_SHMEM_BUF_SIZE];
 };
 
 struct shmem_data {
