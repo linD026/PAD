@@ -19,7 +19,7 @@ PAD_ENTER_POINT(breakpoint)
     return;
 }
 
-void interrupt_handler(int signum)
+void interrupt_handler(int signo, siginfo_t *info, void *context)
 {
     return;
 }
@@ -38,7 +38,10 @@ int main(void)
         .breakpoint = (unsigned long)breakpoint,
     };
 
-    signal(SIGTRAP, interrupt_handler);
+    struct sigaction act = { 0 };
+    
+    act.sa_sigaction = interrupt_handler;
+    sigaction(SIGTRAP, &act, NULL);
 
     pad_init(0, 0);
 
@@ -67,8 +70,7 @@ int main(void)
     pad_x86_test_inject_interrupt((unsigned long)tracee);
 
     time_get_start(record_traced_inserted_interrupted);
-    // SIGTRAP only can run 1 as a time
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < NR_TIME; i++) {
         tracee(i, i + 1);
     }
     time_get_end(record_traced_inserted_interrupted);
@@ -78,5 +80,5 @@ int main(void)
     printf("%llu %llu %llu %llu\n", time_ns(record_normal) / NR_TIME,
            time_ns(record_traced) / NR_TIME,
            time_ns(record_traced_inserted) / NR_TIME,
-           time_ns(record_traced_inserted_interrupted));
+           time_ns(record_traced_inserted_interrupted) / NR_TIME);
 }
