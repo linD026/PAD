@@ -363,6 +363,7 @@ int pad_init(pad_handler_t handler, unsigned int flags)
     }
 
     if (pad_flags & PAD_SET_SHMEM_FLAG) {
+        signal(SIGTRAP, pad_signal_handler);
         shmem_data = init_shmem(getpid());
         if (unlikely(!shmem_data)) {
             ret = -EINVAL;
@@ -371,8 +372,6 @@ int pad_init(pad_handler_t handler, unsigned int flags)
     }
 
     page_size = (size_t)sysconf(_SC_PAGESIZE);
-
-    signal(SIGTRAP, pad_signal_handler);
 
     atomic_store_explicit(&pad_arm_handler, handler, memory_order_release);
 
@@ -512,7 +511,7 @@ out:
 }
 
 /* Debug testing */
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_TEST
 void pad_test_inject(unsigned long address, unsigned long function)
 {
     if (!function)
@@ -525,4 +524,16 @@ void pad_test_recover(unsigned long address)
 {
     text_clear(address + 4);
 }
-#endif /* CONFIG_DEBUG */
+
+void pad_x86_test_inject_interrupt(unsigned long address)
+{
+    unsigned char __attribute__((aligned(
+        CONFIG_PAD_PATCHABLE_SPACE))) code[CONFIG_PAD_PATCHABLE_SPACE] = { 0 };
+
+    code[0] = 0xCC;
+
+    memset(&code[1], 0x90, CONFIG_PAD_PATCHABLE_SPACE - 1);
+
+    text_poke(address + arch_skip_instruction, code);
+}
+#endif /* CONFIG_TEST */
