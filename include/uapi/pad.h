@@ -45,9 +45,10 @@ int pad_register_probe(struct pad_probe *p);
 int pad_unregister_probe(struct pad_probe *p);
 
 /* debug testing */
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_TEST
 void pad_test_inject(unsigned long address, unsigned long function);
 void pad_test_recover(unsigned long address);
+void pad_x86_test_inject_interrupt(unsigned long address);
 #else
 static inline void pad_test_inject(unsigned long address,
                                    unsigned long function)
@@ -56,6 +57,9 @@ static inline void pad_test_inject(unsigned long address,
 static inline void pad_test_recover(unsigned long address)
 {
 }
-#endif /* CONFIG_DEBUG */
+static void pad_x86_test_inject_interrupt(unsigned long address)
+{
+}
+#endif /* CONFIG_TEST */
 
 #endif /* __UAPI_PAD_H__ */

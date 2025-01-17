@@ -12,10 +12,15 @@ CFLAGS += -std=c11
 DEBUG_FLAGS =
 
 DEBUG := 1
+TEST := 0
 
 ifeq ($(strip $(DEBUG)), 1)
 DEBUG_FLAGS += -D'CONFIG_DEBUG'
 CFLAGS+=$(DEBUG_FLAGS)
+endif
+
+ifeq ($(strip $(TEST)), 1)
+CFLAGS += -D'CONFIG_TEST'
 endif
 
 SRC := src/pad.c
@@ -111,6 +116,8 @@ indent:
 	clang-format -i src/*.[ch]
 	clang-format -i tests/*.[ch]
 	clang-format -i tests/*/*.[ch]
+	clang-format -i benchmarks/*.[ch]
+	clang-format -i benchmarks/*/*.[ch]
 
 ifeq ($(quiet), 1)
 .SILENT:

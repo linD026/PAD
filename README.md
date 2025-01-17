@@ -25,6 +25,7 @@ $ make clean        # Delete generated files
 ### Makefile parameters
 
 - `DEBUG`: Set `1` to enable the debug mode.
+- `TEST`: Set 1 to explore the test APIs.
 - `ARCH`: The target architecture.
 - `static`: Build static library instead of dynamic library.
 

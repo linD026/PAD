@@ -14,7 +14,7 @@ print(medians)
 print(std_devs)
 
 # Create labels for the plot
-labels = ['Normal', 'Traced-Normal', 'Traced-Inserted']
+labels = ['Normal', 'Traced-Normal', 'Traced-Inserted', 'Traced-Interrupted']
 
 # Plot the results
 x = np.arange(len(labels))
